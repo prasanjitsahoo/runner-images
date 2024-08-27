@@ -96,22 +96,21 @@ function Build-XcodeTable {
     return $xcodeList | ForEach-Object {
         $defaultPostfix = If ($_.IsDefault) { " (default)" } else { "" }
         $betaPostfix = If ($_.IsStable) { "" } else { " (beta)" }
+        
+        # Extract the base name of the app
+        base_name=$(basename "path" .app)
+        # Remove the "_beta" suffix
+        new_base_name="${base_name/_beta/}"
+        # Construct the new path
+        symlinkPath="/Applications/${new_base_name}.app"
 
-         # Extract the base name of the app from the Path property
-         $baseName = [System.IO.Path]::GetFileNameWithoutExtension($_.Path)
-         # Remove the "_beta" suffix from the base name
-         $newBaseName = $baseName -replace '_beta', ''
-         # Construct the new path
-         $symlinkPath = "/Applications/${newBaseName}.app"
-
-    # Create and return a custom object with the desired properties
-    [PSCustomObject]@{
-        Version = $_.Version.ToString() + $betaPostfix + $defaultPostfix
-        Build = $_.Build
-        Path = $_.Path
-        SymlinkPath = $symlinkPath
+        return [PSCustomObject] @{
+            "Version" = $_.Version.ToString() + $betaPostfix + $defaultPostfix
+            "Build" = $_.Build
+            "Path" = $_.Path
+            "symlinkPath" = $_.symlinkPath 
+        }
     }
-}
 }
 
 function Build-XcodeDevicesList {
