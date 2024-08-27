@@ -103,6 +103,7 @@ function Build-XcodeTable {
         new_base_name="${base_name/_beta/}"
         # Construct the new path 
         symlinkPath="/Applications/${new_base_name}.app"
+        echo "${symlinkPath}"
 
         return [PSCustomObject] @{
             "Version" = $_.Version.ToString() + $betaPostfix + $defaultPostfix
