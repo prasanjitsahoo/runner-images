@@ -97,12 +97,12 @@ function Build-XcodeTable {
         $defaultPostfix = If ($_.IsDefault) { " (default)" } else { "" }
         $betaPostfix = If ($_.IsStable) { "" } else { " (beta)" }
         
-        # Extract the base name of the app from the Path property
-        $baseName = [System.IO.Path]::GetFileNameWithoutExtension($_.Path)
-        # Remove the "_beta" suffix from the base name
-        $newBaseName = $baseName -replace '_beta', ''
-        # Construct the new path
-        $symlinkPath = "/Applications/${newBaseName}.app"
+        # Extract the base name of the app
+        base_name=$(basename "path" .app)
+        # Remove the "_beta" suffix
+        new_base_name="${base_name/_beta/}"
+        # Construct the new path 
+        symlinkPath="/Applications/${new_base_name}.app"
 
         return [PSCustomObject] @{
             "Version" = $_.Version.ToString() + $betaPostfix + $defaultPostfix
