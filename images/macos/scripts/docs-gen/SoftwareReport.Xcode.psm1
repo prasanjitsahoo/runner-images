@@ -108,7 +108,6 @@ function Build-XcodeTable {
             "Version" = $_.Version.ToString() + $betaPostfix + $defaultPostfix
             "Build" = $_.Build
             "Path" = $_.Path
-            #Adding symlink path to the current object
             SymlinkPath = $symlinkPath
         }
     }
