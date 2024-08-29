@@ -92,6 +92,7 @@ function Build-XcodeTable {
         Descending = $true
     }
 
+
 # Declare the global variable for symlinkPath
 $Global:symlinkPath = ""
 
@@ -120,10 +121,11 @@ return $xcodeList | ForEach-Object {
         $Global:symlinkPath = "/Applications/${newBaseName}.app"
     } else {
         # Handle cases where no '_beta' suffix needs to be removed
-        $baseName
+        $newBaseName = $baseName # Corrected here to maintain consistency
+        $Global:symlinkPath = "/Applications/${newBaseName}.app"
     }
 
-   # Output the original path and the symlink path
+    # Output the original path and the symlink path
     Write-Output "Original Path: $inputPath"
     Write-Output "Symlink Path: $Global:symlinkPath"
 
@@ -145,6 +147,7 @@ return $xcodeList | ForEach-Object {
     }
 }
 }
+
 
 function Build-XcodeDevicesList {
     param (
