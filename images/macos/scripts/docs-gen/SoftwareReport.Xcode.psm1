@@ -137,6 +137,12 @@ $xcodeList | ForEach-Object {
         $symlinkPath = "/Applications/${newBaseName}.app"
     }
 
+    # Ensure that $newBaseName is valid
+    if (-not $newBaseName) {
+        Write-Error "Invalid base name extracted from path: $inputPath"
+        return
+    }
+
     # Output the original path and the symlink path
     Write-Output "Original Path: $inputPath"
     Write-Output "Symlink Path: $symlinkPath"
