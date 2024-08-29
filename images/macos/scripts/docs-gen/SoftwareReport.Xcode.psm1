@@ -110,8 +110,13 @@ $xcodeList | ForEach-Object {
     # Extract the base name of the app from the Path property
     $baseName = [System.IO.Path]::GetFileNameWithoutExtension($inputPath)
 
+<<<<<<< HEAD
     # Initialize the new base name with the original base name
     $newBaseName = $baseName
+=======
+    # Initialize the symlink path
+    $symlinkPath = ""
+>>>>>>> 6f6560c7a09f2fbf3d094190fc78d9bfee3c742b
 
     # Determine the symlink path based on suffixes
     if ($baseName -match '_beta_\d+$') {
@@ -131,6 +136,7 @@ $xcodeList | ForEach-Object {
     if (-not $newBaseName) {
         Write-Error "Invalid base name extracted from path: $inputPath"
         return
+        $symlinkPath = "/Applications/${baseName}.app"
     }
 
     # Output the original path and the symlink path
