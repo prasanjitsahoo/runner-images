@@ -111,7 +111,10 @@ $xcodeList | ForEach-Object {
 
     # Extract the base name of the app from the Path property
     $baseName = [System.IO.Path]::GetFileNameWithoutExtension($inputPath)
-    
+
+    # Initialize the new base name with the original base name
+    $newBaseName = $baseName
+
     # Initialize the symlink path
     $symlinkPath = ""
 
