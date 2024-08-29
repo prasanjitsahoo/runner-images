@@ -115,7 +115,7 @@ $xcodeList | ForEach-Object {
     # Initialize the symlink path
     $symlinkPath = ""
 
-    # Determine the new base name based on suffixes
+    # Determine the symlink path based on suffixes
     if ($baseName -match '_beta_\d+$') {
         # Handle paths like 'Xcode_16_beta_6.app'
         $newBaseName = $baseName -replace '_beta_\d+$', ''
@@ -165,10 +165,6 @@ $xcodeList | ForEach-Object {
         SymlinkPath = $symlinkPath
     }
 }
-
-# Return the results
-return $results
-
 }
 
 function Build-XcodeDevicesList {
