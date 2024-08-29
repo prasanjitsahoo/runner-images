@@ -91,10 +91,14 @@ function Build-XcodeTable {
         Expression = { $_.Version }
         Descending = $true
     }
+   
+# Sort the Xcode versions if $sortRules is defined
+$xcodeList = $xcodeInfo.Values | ForEach-Object { $_.VersionInfo } 
+if ($sortRules) {
+    $xcodeList = $xcodeList | Sort-Object $sortRules
+}
 
-# Initialize an empty array to collect objects
-$results = @()
-
+# Iterate over the sorted list of Xcode versions
 $xcodeList | ForEach-Object {
     # Determine the postfixes for default and beta versions
     $defaultPostfix = if ($_.IsDefault) { " (default)" } else { "" }
@@ -106,10 +110,10 @@ $xcodeList | ForEach-Object {
     # Extract the base name of the app from the Path property
     $baseName = [System.IO.Path]::GetFileNameWithoutExtension($inputPath)
 
-    # Initialize the new base name with the original base name
-    $newBaseName = $baseName
+    # Initialize the symlink path
+    $symlinkPath = ""
 
-    # Determine the new base name based on suffixes
+    # Determine the symlink path based on suffixes
     if ($baseName -match '_beta_\d+$') {
         # Handle paths like 'Xcode_16_beta_6.app'
         $newBaseName = $baseName -replace '_beta_\d+$', ''
@@ -120,13 +124,7 @@ $xcodeList | ForEach-Object {
         $symlinkPath = "/Applications/${newBaseName}.app"
     } else {
         # Handle cases where no '_beta' suffix needs to be removed
-        $symlinkPath = "/Applications/${newBaseName}.app"
-    }
-
-    # Ensure that $newBaseName is valid
-    if (-not $newBaseName) {
-        Write-Error "Invalid base name extracted from path: $inputPath"
-        return
+        $symlinkPath = "/Applications/${baseName}.app"
     }
 
     # Output the original path and the symlink path
@@ -143,19 +141,14 @@ $xcodeList | ForEach-Object {
     }
 
     # Create and return a custom object with the desired properties
-    $results += [PSCustomObject]@{
+    [PSCustomObject]@{
         Version     = $_.Version.ToString() + $betaPostfix + $defaultPostfix
         Build       = $_.Build
         Path        = $_.Path
         SymlinkPath = $symlinkPath
     }
 }
-
-# Return the results
-return $results
-
 }
-
 
 function Build-XcodeDevicesList {
     param (
