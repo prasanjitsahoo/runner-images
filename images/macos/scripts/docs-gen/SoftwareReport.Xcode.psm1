@@ -92,14 +92,10 @@ function Build-XcodeTable {
         Descending = $true
     }
 
+# Initialize an empty array to collect objects
+$results = @()
 
-# Declare the global variable for symlinkPath
-$Global:symlinkPath = ""
-
-# Process and sort the Xcode version information
-$xcodeList = $xcodeInfo.Values | ForEach-Object { $_.VersionInfo } | Sort-Object $sortRules
-
-return $xcodeList | ForEach-Object {
+$xcodeList | ForEach-Object {
     # Determine the postfixes for default and beta versions
     $defaultPostfix = if ($_.IsDefault) { " (default)" } else { "" }
     $betaPostfix = if ($_.IsStable) { "" } else { " (beta)" }
@@ -110,42 +106,49 @@ return $xcodeList | ForEach-Object {
     # Extract the base name of the app from the Path property
     $baseName = [System.IO.Path]::GetFileNameWithoutExtension($inputPath)
 
+    # Local variable to hold the symlink path for this iteration
+    $symlinkPath = ""
+
     # Determine the new base name based on suffixes
-    $newBaseName = if ($baseName -match '_beta_\d+$') {
-        # Handle paths like 'Xcode_16_beta_5.app'
-        $baseName -replace '_beta_\d+$', ''
-        $Global:symlinkPath = "/Applications/${newBaseName}.0.app"
+    if ($baseName -match '_beta_\d+$') {
+        # Handle paths like 'Xcode_16_beta_6.app'
+        $newBaseName = $baseName -replace '_beta_\d+$', ''
+        $symlinkPath = "/Applications/${newBaseName}.0.app"
     } elseif ($baseName -match '_beta$') {
         # Handle paths like 'Xcode_16_beta.app'
-        $baseName -replace '_beta$', ''
-        $Global:symlinkPath = "/Applications/${newBaseName}.app"
+        $newBaseName = $baseName -replace '_beta$', ''
+        $symlinkPath = "/Applications/${newBaseName}.app"
     } else {
         # Handle cases where no '_beta' suffix needs to be removed
-        $newBaseName = $baseName # Corrected here to maintain consistency
-        $Global:symlinkPath = "/Applications/${newBaseName}.app"
+        $newBaseName = $baseName
+        $symlinkPath = "/Applications/${newBaseName}.app"
     }
 
     # Output the original path and the symlink path
     Write-Output "Original Path: $inputPath"
-    Write-Output "Symlink Path: $Global:symlinkPath"
+    Write-Output "Symlink Path: $symlinkPath"
 
     # Check if the symlink already exists
-    if (Test-Path $Global:symlinkPath) {
-        Write-Output "Symlink already exists: $Global:symlinkPath"
+    if (Test-Path $symlinkPath) {
+        Write-Output "Symlink already exists: $symlinkPath"
     } else {
         # Create the symlink
-        New-Item -ItemType SymbolicLink -Path $Global:symlinkPath -Target $inputPath
-        Write-Output "Symlink created: $Global:symlinkPath -> $inputPath"
+        New-Item -ItemType SymbolicLink -Path $symlinkPath -Target $inputPath
+        Write-Output "Symlink created: $symlinkPath -> $inputPath"
     }
 
     # Create and return a custom object with the desired properties
-    [PSCustomObject]@{
-        Version = $_.Version.ToString() + $betaPostfix + $defaultPostfix
-        Build = $_.Build
-        Path = $_.Path
-        SymlinkPath = $Global:symlinkPath
+    $results += [PSCustomObject]@{
+        Version     = $_.Version.ToString() + $betaPostfix + $defaultPostfix
+        Build       = $_.Build
+        Path        = $_.Path
+        SymlinkPath = $symlinkPath
     }
 }
+
+# Return the results
+return $results
+
 }
 
 
