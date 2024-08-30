@@ -92,6 +92,9 @@ function Build-XcodeTable {
         Descending = $true
     }
    
+# Initialize an empty array to collect objects
+$results = @()
+
 # Sort the Xcode versions if $sortRules is defined
 $xcodeList = $xcodeInfo.Values | ForEach-Object { $_.VersionInfo } 
 if ($sortRules) {
@@ -141,13 +144,17 @@ $xcodeList | ForEach-Object {
     }
 
     # Create and return a custom object with the desired properties
-    [PSCustomObject]@{
+    $results += [PSCustomObject]@{
         Version     = $_.Version.ToString() + $betaPostfix + $defaultPostfix
         Build       = $_.Build
         Path        = $_.Path
         SymlinkPath = $symlinkPath
     }
 }
+
+# Output the results array
+$results
+
 }
 
 function Build-XcodeDevicesList {
