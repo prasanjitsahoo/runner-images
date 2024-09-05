@@ -75,7 +75,6 @@ function Get-XcodePlatformOrder {
         Default { 100 }
     }
 }
-
 function Get-XcodeCommandLineToolsVersion {
     $xcodeCommandLineToolsVersion = Run-Command "pkgutil --pkg-info com.apple.pkg.CLTools_Executables" | Select -Index 1 | Take-Part -Part 1
     return $xcodeCommandLineToolsVersion
@@ -87,22 +86,52 @@ function Build-XcodeTable {
         [hashtable] $xcodeInfo
     )
 
+    # Sorting rules for Xcode versions
     $sortRules = @{
         Expression = { $_.Version }
         Descending = $true
     }
 
+    # Process the Xcode version info and sort it
     $xcodeList = $xcodeInfo.Values | ForEach-Object { $_.VersionInfo } | Sort-Object $sortRules
+
+    # Return a processed list with version, build, path, and symlink path
     return $xcodeList | ForEach-Object {
+        # Determine the postfixes for default and beta versions
         $defaultPostfix = If ($_.IsDefault) { " (default)" } else { "" }
         $betaPostfix = If ($_.IsStable) { "" } else { " (beta)" }
+
+        # Extract the base name of the app from the Path property
+        $inputPath = $_.Path
+        $baseName = [System.IO.Path]::GetFileNameWithoutExtension($inputPath)
+
+        # Initialize the symlink path
+        $symlinkPath = ""
+
+        # Check for different patterns and adjust symlink path
+        if ($baseName -match '_(beta_\d+)$') {
+            # Handle paths like 'Xcode_16_beta_5.app' and map to 'Xcode_16.0.app'
+            $newBaseName = $baseName -replace '_beta_\d+$', ''
+            $symlinkPath = "/Applications/${newBaseName}.0.app"
+        } elseif ($baseName -match '_(beta)$') {
+            # Handle paths like 'Xcode_16.1_beta.app' and map to 'Xcode_16.1.app'
+            $newBaseName = $baseName -replace '_beta$', ''
+            $symlinkPath = "/Applications/${newBaseName}.app"
+        } else {
+            # Handle non-beta versions
+            $symlinkPath = "/Applications/${baseName}.app"
+        }
+
+        # Create and return a custom object with the desired properties
         return [PSCustomObject] @{
-            "Version" = $_.Version.ToString() + $betaPostfix + $defaultPostfix
-            "Build" = $_.Build
-            "Path" = $_.Path
+            "Version"     = $_.Version.ToString() + $betaPostfix + $defaultPostfix
+            "Build"       = $_.Build
+            "Path"        = $_.Path
+            "SymlinkPath" = $symlinkPath
         }
     }
 }
+
 
 function Build-XcodeDevicesList {
     param (
