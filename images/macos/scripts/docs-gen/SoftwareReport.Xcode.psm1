@@ -121,16 +121,22 @@ function Build-XcodeTable {
         }
 
         # Check for different patterns and adjust symlink path
-        if ($baseName -match '_beta_(\d+)$') {
-            # Handle paths like 'Xcode_16_beta_5.app' and map to 'Xcode_16.0.app'
-            $symlinkPath = "/Applications/Xcode_${majorVersion}.0.app"
-        } elseif ($baseName -match '_beta$') {
-            # Handle paths like 'Xcode_16.1_beta.app' and map to 'Xcode_16.0.app'
+        if ($baseName -match '_beta_(\d+)$' -or $baseName -match '_beta$') {
+            # Handle beta versions
+            if ($minorVersion -and -not $patchVersion) {
+                # For paths like 'Xcode_16.1_beta.app' and similar
+                $symlinkPath = "/Applications/Xcode_${majorVersion}.${minorVersion}.app"
+            } else {
+                # For paths like 'Xcode_16_beta_5.app' and similar
+                $symlinkPath = "/Applications/Xcode_${majorVersion}.0.app"
+            }
+        } elseif ($baseName -match '_Release_Candidate') {
+            # Handle Release Candidate versions
             $symlinkPath = "/Applications/Xcode_${majorVersion}.0.app"
         } else {
             # Handle non-beta versions
             if ($patchVersion) {
-                $symlinkPath = "/Applications/Xcode_${majorVersion}.${minorVersion}.app"
+                $symlinkPath = "/Applications/Xcode_${majorVersion}.${minorVersion}.${patchVersion}.app"
             } elseif ($minorVersion) {
                 $symlinkPath = "/Applications/Xcode_${majorVersion}.${minorVersion}.0.app"
             } else {
