@@ -108,18 +108,34 @@ function Build-XcodeTable {
         # Initialize the symlink path
         $symlinkPath = ""
 
+        # Extract major, minor, and patch versions
+        $versionPattern = '(\d+)(?:_(\d+))?(?:_(\d+))?'
+        if ($baseName -match $versionPattern) {
+            $majorVersion = $matches[1]
+            $minorVersion = $matches[2]  # This might be $null if not available
+            $patchVersion = $matches[3]  # This might be $null if not available
+        } else {
+            $majorVersion = $baseName
+            $minorVersion = ""
+            $patchVersion = ""
+        }
+
         # Check for different patterns and adjust symlink path
-        if ($baseName -match '_(beta_\d+)$') {
+        if ($baseName -match '_beta_(\d+)$') {
             # Handle paths like 'Xcode_16_beta_5.app' and map to 'Xcode_16.0.app'
-            $newBaseName = $baseName -replace '_beta_\d+$', ''
-            $symlinkPath = "/Applications/${newBaseName}.0.app"
-        } elseif ($baseName -match '_(beta)$') {
-            # Handle paths like 'Xcode_16.1_beta.app' and map to 'Xcode_16.1.app'
-            $newBaseName = $baseName -replace '_beta$', ''
-            $symlinkPath = "/Applications/${newBaseName}.app"
+            $symlinkPath = "/Applications/Xcode_${majorVersion}.0.app"
+        } elseif ($baseName -match '_beta$') {
+            # Handle paths like 'Xcode_16.1_beta.app' and map to 'Xcode_16.0.app'
+            $symlinkPath = "/Applications/Xcode_${majorVersion}.0.app"
         } else {
             # Handle non-beta versions
-            $symlinkPath = "/Applications/${baseName}.app"
+            if ($patchVersion) {
+                $symlinkPath = "/Applications/Xcode_${majorVersion}.${minorVersion}.app"
+            } elseif ($minorVersion) {
+                $symlinkPath = "/Applications/Xcode_${majorVersion}.${minorVersion}.0.app"
+            } else {
+                $symlinkPath = "/Applications/Xcode_${majorVersion}.app"
+            }
         }
 
         # Create and return a custom object with the desired properties
@@ -131,7 +147,6 @@ function Build-XcodeTable {
         }
     }
 }
-
 
 function Build-XcodeDevicesList {
     param (
