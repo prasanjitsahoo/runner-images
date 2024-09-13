@@ -108,40 +108,29 @@ function Build-XcodeTable {
         # Initialize the symlink path
         $symlinkPath = ""
 
-        # Extract major, minor, and patch versions
-        $versionPattern = '(\d+)(?:_(\d+))?(?:_(\d+))?'
-        if ($baseName -match $versionPattern) {
-            $majorVersion = $matches[1]
-            $minorVersion = $matches[2]  # This might be $null if not available
-            $patchVersion = $matches[3]  # This might be $null if not available
-        } else {
-            $majorVersion = $baseName
-            $minorVersion = ""
-            $patchVersion = ""
-        }
-
         # Check for different patterns and adjust symlink path
-        if ($baseName -match '_beta_(\d+)$' -or $baseName -match '_beta$') {
-            # Handle beta versions
-            if ($minorVersion -and -not $patchVersion) {
-                # For paths like 'Xcode_16.1_beta.app' and similar
-                $symlinkPath = "/Applications/Xcode_${majorVersion}.${minorVersion}.app"
-            } else {
-                # For paths like 'Xcode_16_beta_5.app' and similar
-                $symlinkPath = "/Applications/Xcode_${majorVersion}.0.app"
-            }
-        } elseif ($baseName -match '_Release_Candidate') {
-            # Handle Release Candidate versions
-            $symlinkPath = "/Applications/Xcode_${majorVersion}.0.app"
+        if ($baseName -match '_beta_\d+$') {
+            # Handle paths like 'Xcode_16_beta_5.app' and map to 'Xcode_16.0.app'
+            $newBaseName = $baseName -replace '_beta_\d+$', ''
+            $symlinkPath = "/Applications/${newBaseName}.0.app"
+        } elseif ($baseName -match '_beta$') {
+            # Handle paths like 'Xcode_16_beta.app' and map to 'Xcode_16.0.app'
+            $newBaseName = $baseName -replace '_beta$', ''
+            $symlinkPath = "/Applications/${newBaseName}.0.app"
+        } elseif ($baseName -match '_(Release_Candidate|RC)$') {
+            # Handle paths like 'Xcode_16_Release_Candidate.app' and map to 'Xcode_16.0.app'
+            $newBaseName = $baseName -replace '_(Release_Candidate|RC)$', ''
+            $symlinkPath = "/Applications/${newBaseName}.0.app"
+        } elseif ($baseName -match '^\w+_\d+\.\d+\.\d+$') {
+            # Handle paths like 'Xcode_15.0.1.app' and map to 'Xcode_15.0.app'
+            $newBaseName = $baseName -replace '\.\d+$', ''
+            $symlinkPath = "/Applications/${newBaseName}.app"
+        } elseif ($baseName -match '^\w+_\d+\.\d+$') {
+            # Handle paths like 'Xcode_15.3.app' and map to 'Xcode_15.3.0.app'
+            $symlinkPath = "/Applications/${baseName}.0.app"
         } else {
             # Handle non-beta versions
-            if ($patchVersion) {
-                $symlinkPath = "/Applications/Xcode_${majorVersion}.${minorVersion}.${patchVersion}.app"
-            } elseif ($minorVersion) {
-                $symlinkPath = "/Applications/Xcode_${majorVersion}.${minorVersion}.0.app"
-            } else {
-                $symlinkPath = "/Applications/Xcode_${majorVersion}.app"
-            }
+            $symlinkPath = "/Applications/${baseName}.app"
         }
 
         # Create and return a custom object with the desired properties
@@ -153,6 +142,7 @@ function Build-XcodeTable {
         }
     }
 }
+
 
 function Build-XcodeDevicesList {
     param (
