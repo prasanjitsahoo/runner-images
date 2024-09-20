@@ -1,5 +1,6 @@
 Import-Module "$PSScriptRoot/../helpers/Common.Helpers.psm1"
 Import-Module "$PSScriptRoot/../helpers/Xcode.Helpers.psm1"
+Import-Module "$PSScriptRoot/../helpers/Xcode.Installer.psm1"
 
 $os = Get-OSVersion
 
@@ -84,24 +85,47 @@ function Get-XcodeCommandLineToolsVersion {
 function Build-XcodeTable {
     param (
         [Parameter(Mandatory)]
-        [hashtable] $xcodeInfo
+        [object] $xcodeInfo  # Assuming this is JSON data
     )
 
+    # Sorting rules for Xcode versions
     $sortRules = @{
-        Expression = { $_.Version }
+        Expression = { $_.version }
         Descending = $true
     }
 
-    $xcodeList = $xcodeInfo.Values | ForEach-Object { $_.VersionInfo } | Sort-Object $sortRules
+    # Extract the version info and sort
+    $xcodeList = $xcodeInfo.xcode.x64.versions | Sort-Object $sortRules
+
+    # Process and return the list with version, build, path, and symlink data
     return $xcodeList | ForEach-Object {
-        $defaultPostfix = If ($_.IsDefault) { " (default)" } else { "" }
-        $betaPostfix = If ($_.IsStable) { "" } else { " (beta)" }
-        return [PSCustomObject] @{
-            "Version" = $_.Version.ToString() + $betaPostfix + $defaultPostfix
-            "Build" = $_.Build
-            "Path" = $_.Path
+        # Assume the default symlink is the first in the symlinks array if available
+        $symlinkPath = if ($_.symlinks.Count -gt 0) { $_.symlinks[0] } else { $_.version }
+
+        # Determine the postfixes for default and beta versions
+        $defaultPostfix = if ($_.version -eq $xcodeInfo.xcode.default) { " (default)" } else { "" }
+        $betaPostfix = if ($_.version -match "Beta") { " (beta)" } else { "" }
+
+        # Create the installation path
+        $path = Get-XcodeRootPath -Version $_.version
+
+        # Construct the symlink path (assuming the first symlink is the primary one)
+        $symlinkVersionPath = Get-XcodeRootPath -Version $symlinkPath
+
+        # Create and return a custom object with the desired properties
+        [PSCustomObject] @{
+            "Version"      = $_.version.ToString() + $betaPostfix + $defaultPostfix
+            "Build"        = $_.sha256
+            "Path"         = $path
+            "SymlinkPath"  = if ($symlinkVersionPath -eq $null) { "Error" } else { $symlinkVersionPath }
         }
     }
+}
+function Get-XcodeRootPath {
+    param([string]$Version)
+
+    # Assume the root path is in /Applications with the full version
+    return "/Applications/Xcode_$Version.app"
 }
 
 function Build-XcodeDevicesList {
