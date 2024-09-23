@@ -81,25 +81,60 @@ function Get-XcodeCommandLineToolsVersion {
     return $xcodeCommandLineToolsVersion
 }
 
+function Get-CorrectedXcodePath {
+    param (
+        [string]$appPath
+    )
+
+    # Define a single mapping pattern
+    $patterns = @(
+        @{ Pattern = 'Xcode_(\d+)\.(\d+)_beta'; Replacement = 'Xcode_$1.$2' },
+        @{ Pattern = 'Xcode_(\d+)\.(\d+)_beta_(\d+)'; Replacement = 'Xcode_$1.$2' },
+        @{ Pattern = 'Xcode_(\d+)\.(\d+)\.(\d+)'; Replacement = 'Xcode_$1.$2' },
+        @{ Pattern = 'Xcode_(\d+)'; Replacement = 'Xcode_$1.0' }
+    )
+
+    foreach ($item in $patterns) {
+        if ($appPath -match $item.Pattern) {
+            return $appPath -replace $item.Pattern, $item.Replacement
+        }
+    }
+
+    # Default return if no pattern matched
+    return $appPath
+}
+
 function Build-XcodeTable {
     param (
         [Parameter(Mandatory)]
         [hashtable] $xcodeInfo
     )
 
-    $sortRules = @{
-        Expression = { $_.Version }
-        Descending = $true
+    # Sorting and processing the Xcode version info
+    $xcodeList = $xcodeInfo.Values | ForEach-Object { $_.VersionInfo } | Sort-Object { $_.Version } -Descending
+
+    # Debugging output
+    Write-Host "Debug: The sorted list of Xcode versions:"
+    foreach ($item in $xcodeList) {
+        Write-Host "Version: $($item.Version), Build: $($item.Build), Path: $($item.Path)"
     }
 
-    $xcodeList = $xcodeInfo.Values | ForEach-Object { $_.VersionInfo } | Sort-Object $sortRules
+    # Return processed list
     return $xcodeList | ForEach-Object {
-        $defaultPostfix = If ($_.IsDefault) { " (default)" } else { "" }
-        $betaPostfix = If ($_.IsStable) { "" } else { " (beta)" }
-        return [PSCustomObject] @{
-            "Version" = $_.Version.ToString() + $betaPostfix + $defaultPostfix
-            "Build" = $_.Build
-            "Path" = $_.Path
+        # Postfix determination
+        $postfix = (if ($_.IsDefault) { " (default)" } else { "" }) + (if ($_.IsStable) { "" } else { " (beta)" })
+
+        # Apply correction logic
+        $correctedPath = Get-CorrectedXcodePath -appPath $_.Path
+        Write-Host "$($_.Path) should map to $correctedPath."
+
+        # Create custom object
+        [PSCustomObject] @{
+            "Version" = $_.Version.ToString() + $postfix
+            "Build"   = $_.Build
+            "Path"    = $_.Path
+            "Symlink" = "Placeholder for symlink"  # Placeholder for actual symlink logic
+            "Symlink2" = "Placeholder for symlink"  # Placeholder for actual symlink logic
         }
     }
 }
